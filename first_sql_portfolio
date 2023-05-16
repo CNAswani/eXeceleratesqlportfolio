@@ -1,0 +1,113 @@
+/*Return a list of all roles for women who work in the Engineering department with a base pay of at least $100,000 and at least a $5,000 bonus with either a Master’s or PhD over the age of 30.*/
+select empsurvid,
+jobtitle,
+age,
+basepay,
+bonus,
+education,
+gender,
+dept
+from glassdoor_survey_roles
+where gender = 'female' and dept = 'engineering' and education in ('phd','masters') and age > 30 and basepay >= 100000 and 
+bonus >= 5000
+
+
+/*Return a list of all college educated surveyors that are between 25 to 35. Sort by age from youngest to oldest.*/
+select empsurvid,
+age,
+education
+from glassdoor_survey_roles
+where education != 'high school' and age between 25 and 35
+
+
+/*Return all full time, salaried IT industry data analyst roles in the tri state area: NY, NJ, and CT for roles that are at least $75,000. 
+Sort by the starting pay from smallest to largest.*/
+select title,
+description,
+salary,
+location,
+industries,
+start_range
+from linkedin_data_analyst
+where description = 'full-time' and salary = 'y' and start_range >= 75000 AND
+(location like '%, ny%' or  location like '%, nj%' or location like '%, ct%') AND
+industries like '%it services%'
+
+
+/*Return the highest starting hourly rate by industry for hourly roles in IT industries.*/
+ select industries,
+ max(start_range) as 'Highest_Start'
+ from linkedin_data_analyst
+ where hourly = 'y' and industries like '%it services%'
+ group by industries
+ 
+/*Return the highest, lowest, and average starting salaries and number of roles for remote workers.*/
+select max(start_range) as 'High_Start',
+min(start_range) as 'Low_Start',
+avg(start_range) as 'Avg_Start',
+count(title) as 'Role_Count'
+from linkedin_data_analyst
+where salary = 'y' and onsite_remote = 'remote'
+
+ 
+ /*Return the average salary, highest salary, lowest salary, and number of surveyors for Software Engineers (Salary =  basepay + bonus).*/
+select avg(basepay+bonus) as 'Avg_Salary',
+max(basepay+bonus) as 'Max_Salary',
+min(basepay+bonus) as 'Min_Salary',
+count(empsurvid) as 'Survey_Count'
+from glassdoor_survey_roles
+where jobtitle = 'software engineer'
+
+/*Count the number of people surveyed by Department by age for ages between 18 to 24.*/
+select dept, 
+age, 
+count(empsurvid) as 'Survey_Count'
+from glassdoor_survey_roles
+where age between 18 and 24
+group by dept, age
+order by dept asc, age desc
+
+
+/*Return the average salary, highest salary, lowest salary, and number of surveyors for Software Engineers (Salary =  basepay + bonus) by Department by Gender.*/
+select Dept,
+Gender,
+avg(basepay+bonus) as 'Avg_Salary',
+max(basepay+bonus) as 'Max_Salary',
+min(basepay+bonus) as 'Min_Salary',
+count(empsurvid) as 'Survey_Count'
+from glassdoor_survey_roles
+where jobtitle = 'software engineer'
+group by dept, gender
+order by dept asc, gender asc
+
+
+/*Calculate the total paid in bonuses to all female surveyors by education level by seniority level for levels 1 and 2 who are college educated.*/
+select education, 
+seniority, 
+sum(bonus) as 'Total_Bonus'
+from glassdoor_survey_roles
+where gender = 'female' and education != 'high school' and seniority between 1 and 2
+group by education, seniority
+order by education asc, seniority asc
+
+
+/*Return a list of Glassdoor subscribed surveyors (ID, first and last names, states of residence, total pay, role, and department) who reside in At Will states. Reminder, At Will states have No records in all categories.*/
+SELECT sl.Survey_ID,
+sn.first_name,
+sn.last_name,
+sn.state,
+(g.basepay+g.bonus) 'Total_Pay',
+g.jobtitle,
+g.dept
+from at_will aw join Surv_Name sn on sn.state=aw.short_state join glassdoor_survey_roles g on g.empsurvid=sn.empsurvid
+join gd_sub_list sl on sl.Survey_ID=sn.empsurvid
+where aw.Public_Policy_Exemption = 'no' and aw.Covenant_of_Good_Faith = 'no' and aw.Implied_Contract_Exception = 'no'
+
+
+/*Return the average total pay (basepay + salary) by state but only for At Will states for Glassdoor subscribers. Reminder, At Will states have No records in all categories.*/
+SELECT aw.state,
+avg(g.basepay+g.bonus) 'Total_Pay'
+from at_will aw join Surv_Name sn on sn.state=aw.short_state join glassdoor_survey_roles g on g.empsurvid=sn.empsurvid
+join gd_sub_list sl on sl.Survey_ID=sn.empsurvid
+where aw.Public_Policy_Exemption = 'no' and aw.Covenant_of_Good_Faith = 'no' and aw.Implied_Contract_Exception = 'no'
+group by aw.state
